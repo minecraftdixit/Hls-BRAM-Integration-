@@ -1,25 +1,20 @@
 #include <hls_stream.h>
 #include "ap_fixed.h"
+#include "ap_int.h"
 
 // Define the data type for weights
 typedef ap_fixed<32, 8> WEIGHT_TYPE; // Define ap_fixed with 32 bits total (including 8 fractional bits)
 
 // Define the size of the weight arrays
-const int WEIGHT_ARRAY_SIZE = 3366;
+const int WEIGHT_ARRAY_SIZE = 270;
 
-// Define the array_write function with M_AXI pragmas
+// Define the array_write function with m_axi pragma
 void array_write(WEIGHT_TYPE A[WEIGHT_ARRAY_SIZE], WEIGHT_TYPE B[WEIGHT_ARRAY_SIZE], ap_uint<32> *ctrl_A, ap_uint<32> *ctrl_B, ap_uint<1> start_A, ap_uint<1> start_B) {
-#pragma HLS INTERFACE m_axi depth=WEIGHT_ARRAY_SIZE offset=slave port=A
-#pragma HLS INTERFACE m_axi depth=WEIGHT_ARRAY_SIZE offset=slave port=B
-#pragma HLS INTERFACE s_axilite port=ctrl_A bundle=CTRL_BUS_A
-#pragma HLS INTERFACE s_axilite port=ctrl_B bundle=CTRL_BUS_B
-#pragma HLS INTERFACE s_axilite port=start_A bundle=CTRL_BUS_A
-#pragma HLS INTERFACE s_axilite port=start_B bundle=CTRL_BUS_B
-#pragma HLS INTERFACE s_axilite port=return bundle=CTRL_BUS_A
+
 
     if (start_A) {
         for (int i = 0; i < WEIGHT_ARRAY_SIZE; i++) {
-#pragma HLS PIPELINE off
+#pragma HLS PIPELINE
             A[i] = static_cast<WEIGHT_TYPE>(i + 1);
         }
         // Optionally, you can signal the completion to the control bus for A here.
@@ -28,13 +23,27 @@ void array_write(WEIGHT_TYPE A[WEIGHT_ARRAY_SIZE], WEIGHT_TYPE B[WEIGHT_ARRAY_SI
 
     if (start_B) {
         for (int i = 0; i < WEIGHT_ARRAY_SIZE; i++) {
-#pragma HLS PIPELINE off
+#pragma HLS PIPELINE
             B[i] = static_cast<WEIGHT_TYPE>(i + 1);
         }
         // Optionally, you can signal the completion to the control bus for B here.
         *ctrl_B = 1;
     }
 }
+
+// Top-level HLS function
+void top_function(ap_uint<1> start_A, ap_uint<1> start_B) {
+
+    WEIGHT_TYPE A[WEIGHT_ARRAY_SIZE];
+    WEIGHT_TYPE B[WEIGHT_ARRAY_SIZE];
+
+    // Control signals
+    ap_uint<32> ctrl_A = 0;
+    ap_uint<32> ctrl_B = 0;
+
+    array_write(A, B, &ctrl_A, &ctrl_B, start_A, start_B);
+}
+
 ////////////////////////////////////////////////////tb
 #include <iostream>
 #include <fstream>
